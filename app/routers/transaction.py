@@ -4,9 +4,23 @@ from app.schemas.transaction import TransactionCreate
 router = APIRouter()
 
 @router.get("/transactions")
+
 def get_transactions():
     return {
-        "data": [],
+        "data": [
+            {
+                "id": 1,
+                "title": "ランチ",
+                "amount": 1000,
+                "type": "expense"
+            },
+            {
+                "id": 2,
+                "title": "給料",
+                "amount": 300000,
+                "type": "income"
+            }
+        ],
         "meta": {}
     }
 
