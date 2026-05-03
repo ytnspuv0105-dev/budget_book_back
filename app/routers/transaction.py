@@ -43,6 +43,18 @@ def create_transaction(data: TransactionCreate):
 
     return new_transaction
 
+@router.put("/transactions/{transaction_id}")
+def update_transaction(transaction_id: int, data: TransactionCreate):
+    for i, t in enumerate(transactions):
+        if t["id"] == transaction_id:
+            transactions[i] = {
+                "id": transaction_id,
+                **data.dict()
+            }
+            return transactions[i]
+
+    return {"error": "not found"}
+
 @router.delete("/transactions/{transaction_id}")
 def delete_transaction(transaction_id: int):
     global transactions
