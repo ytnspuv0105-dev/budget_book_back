@@ -42,3 +42,13 @@ def create_transaction(data: TransactionCreate):
     transactions.append(new_transaction)
 
     return new_transaction
+
+@router.delete("/transactions/{transaction_id}")
+def delete_transaction(transaction_id: int):
+    global transactions
+
+    transactions = [
+        t for t in transactions if t["id"] != transaction_id
+    ]
+
+    return {"message": "deleted"}
