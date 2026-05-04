@@ -1,66 +1,84 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.schemas.transaction import TransactionCreate
+from app.models.transaction import Transaction
+from app.db import get_db
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
-# 👇 追加（メモリ保存）
-transactions = [
-    {
-        "id": 1,
-        "title": "ランチ",
-        "amount": 1000,
-        "type": "expense",
-        "date": "2026-05-01",
-        "category_id": 1
-    },
-    {
-        "id": 2,
-        "title": "給料",
-        "amount": 300000,
-        "type": "income",
-        "date": "2026-05-01",
-        "category_id": 1
-    }
-]
 
+# 🥇 GET（一覧取得）
 @router.get("/transactions")
-def get_transactions():
+def get_transactions(db: Session = Depends(get_db)):
+    transactions = db.query(Transaction).all()
+
     return {
-        "data": transactions,
+        "data": [
+            {
+                "id": t.id,
+                "title": t.title,
+                "amount": t.amount,
+                "type": t.type,
+                "date": t.date,
+                "category_id": t.category_id,
+            }
+            for t in transactions
+        ],
         "meta": {}
     }
 
+# 🥈 POST（作成）
 @router.post("/transactions")
-def create_transaction(data: TransactionCreate):
-    new_id = len(transactions) + 1
+def create_transaction(
+    data: TransactionCreate,
+    db: Session = Depends(get_db)
+):
+    new_transaction = Transaction(
+        title=data.title,
+        amount=data.amount,
+        type=data.type,
+        date=data.date,
+        category_id=data.category_id,
+    )
 
-    new_transaction = {
-        "id": new_id,
-        **data.dict()
-    }
-
-    transactions.append(new_transaction)
+    db.add(new_transaction)
+    db.commit()
+    db.refresh(new_transaction)
 
     return new_transaction
 
+# 🥉 PUT（更新）
 @router.put("/transactions/{transaction_id}")
-def update_transaction(transaction_id: int, data: TransactionCreate):
-    for i, t in enumerate(transactions):
-        if t["id"] == transaction_id:
-            transactions[i] = {
-                "id": transaction_id,
-                **data.dict()
-            }
-            return transactions[i]
+def update_transaction(
+    transaction_id: int,
+    data: TransactionCreate,
+    db: Session = Depends(get_db)
+):
+    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
 
-    return {"error": "not found"}
+    if not transaction:
+        return {"error": "not found"}
 
+    transaction.title = data.title
+    transaction.amount = data.amount
+    transaction.type = data.type
+    transaction.date = data.date
+    transaction.category_id = data.category_id
+
+    db.commit()
+
+    return {"message": "updated"}
+
+# 🏁 DELETE（削除）
 @router.delete("/transactions/{transaction_id}")
-def delete_transaction(transaction_id: int):
-    global transactions
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db)
+):
+    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
 
-    transactions = [
-        t for t in transactions if t["id"] != transaction_id
-    ]
+    if transaction:
+        db.delete(transaction)
+        db.commit()
 
     return {"message": "deleted"}
