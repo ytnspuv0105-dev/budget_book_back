@@ -13,6 +13,3 @@ class Transaction(Base):
     type = Column(String)
     date = Column(String)
     category_id = Column(Integer)
-
-# テーブル作成
-Base.metadata.create_all(bind=engine)
