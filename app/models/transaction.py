@@ -1,8 +1,5 @@
 from sqlalchemy import Column, Integer, String
-from app.db import engine
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+from app.db import Base
 
 class Transaction(Base):
     __tablename__ = "transactions"
