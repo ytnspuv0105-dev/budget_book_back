@@ -31,7 +31,7 @@ class Transaction(Base):
 
     type = Column(String, nullable=False)
 
-    date = Column(Date, nullable=False, index=True),
+    date = Column(Date, nullable=False, index=True)
 
     memo = Column(Text, nullable=True)
 
