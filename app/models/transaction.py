@@ -33,7 +33,7 @@ class Transaction(Base):
 
     date = Column(Date, nullable=False, index=True)
 
-    memo = Column(Text, nullable=True)
+    title = Column(Text, nullable=True)
 
     category_id = Column(
         Integer,
