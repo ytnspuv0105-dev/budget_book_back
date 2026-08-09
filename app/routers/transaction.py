@@ -3,6 +3,7 @@ from app.schemas.transaction import TransactionCreate
 from app.models.transaction import Transaction
 from app.db import get_db
 from sqlalchemy.orm import Session
+import traceback
 
 router = APIRouter()
 
@@ -10,22 +11,26 @@ router = APIRouter()
 # 🥇 GET（一覧取得）
 @router.get("/transactions")
 def get_transactions(db: Session = Depends(get_db)):
-    transactions = db.query(Transaction).all()
+    try:
+        transactions = db.query(Transaction).all()
 
-    return {
-        "data": [
-            {
-                "id": t.id,
-                "title": t.title,
-                "amount": t.amount,
-                "type": t.type,
-                "date": t.date,
-                "category_id": t.category_id,
-            }
-            for t in transactions
-        ],
-        "meta": {}
-    }
+        return {
+            "data": [
+                {
+                    "id": t.id,
+                    "title": t.title,
+                    "amount": t.amount,
+                    "type": t.type,
+                    "date": t.date,
+                    "category_id": t.category_id,
+                }
+                for t in transactions
+            ],
+            "meta": {},
+        }
+    except Exception:
+        print(traceback.format_exc())
+        raise
 
 # 🥈 POST（作成）
 @router.post("/transactions")
