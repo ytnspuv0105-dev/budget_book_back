@@ -1,38 +1,77 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.models.category import Category
 from app.models.transaction import Transaction
-from app.schemas.transaction import TransactionCreate
+from app.schemas.transaction import (
+    TransactionCreate,
+    TransactionListResponse,
+    TransactionResponse,
+    TransactionUpdate,
+)
 
 router = APIRouter()
 
 
-@router.get("/transactions")
+def get_transaction_or_404(
+    transaction_id: int,
+    db: Session,
+) -> Transaction:
+    transaction = (
+        db.query(Transaction)
+        .filter(Transaction.id == transaction_id)
+        .first()
+    )
+
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="収支が見つかりません",
+        )
+
+    return transaction
+
+
+def ensure_category_exists(category_id: int, db: Session) -> None:
+    category_exists = (
+        db.query(Category.id)
+        .filter(Category.id == category_id)
+        .first()
+    )
+
+    if not category_exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="カテゴリが見つかりません",
+        )
+
+
+@router.get("/transactions", response_model=TransactionListResponse)
 def get_transactions(db: Session = Depends(get_db)):
-    transactions = db.query(Transaction).all()
+    transactions = (
+        db.query(Transaction)
+        .order_by(Transaction.date.desc(), Transaction.id.desc())
+        .all()
+    )
 
     return {
-        "data": [
-            {
-                "id": t.id,
-                "title": t.title,
-                "amount": t.amount,
-                "type": t.type,
-                "date": t.date,
-                "category_id": t.category_id,
-            }
-            for t in transactions
-        ],
+        "data": transactions,
         "meta": {},
     }
 
 
-@router.post("/transactions")
+@router.post(
+    "/transactions",
+    response_model=TransactionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_transaction(
     data: TransactionCreate,
     db: Session = Depends(get_db),
 ):
+    ensure_category_exists(data.category_id, db)
+
     new_transaction = Transaction(
         title=data.title,
         amount=data.amount,
@@ -48,20 +87,17 @@ def create_transaction(
     return new_transaction
 
 
-@router.put("/transactions/{transaction_id}")
+@router.put(
+    "/transactions/{transaction_id}",
+    response_model=TransactionResponse,
+)
 def update_transaction(
     transaction_id: int,
-    data: TransactionCreate,
+    data: TransactionUpdate,
     db: Session = Depends(get_db),
 ):
-    transaction = (
-        db.query(Transaction)
-        .filter(Transaction.id == transaction_id)
-        .first()
-    )
-
-    if not transaction:
-        return {"error": "not found"}
+    transaction = get_transaction_or_404(transaction_id, db)
+    ensure_category_exists(data.category_id, db)
 
     transaction.title = data.title
     transaction.amount = data.amount
@@ -70,23 +106,22 @@ def update_transaction(
     transaction.category_id = data.category_id
 
     db.commit()
+    db.refresh(transaction)
 
-    return {"message": "updated"}
+    return transaction
 
 
-@router.delete("/transactions/{transaction_id}")
+@router.delete(
+    "/transactions/{transaction_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def delete_transaction(
     transaction_id: int,
     db: Session = Depends(get_db),
 ):
-    transaction = (
-        db.query(Transaction)
-        .filter(Transaction.id == transaction_id)
-        .first()
-    )
+    transaction = get_transaction_or_404(transaction_id, db)
 
-    if transaction:
-        db.delete(transaction)
-        db.commit()
+    db.delete(transaction)
+    db.commit()
 
-    return {"message": "deleted"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
