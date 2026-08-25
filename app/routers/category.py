@@ -3,7 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.category import Category
-from app.schemas.category import CategoryCreate, CategoryResponse
+from app.schemas.category import (
+    CategoryCreate,
+    CategoryResponse,
+    CategoryUpdate,
+)
 
 router = APIRouter(
     prefix="/categories",
@@ -33,7 +37,7 @@ def get_categories(db: Session = Depends(get_db)):
 @router.put("/{category_id}", response_model=CategoryResponse)
 def update_category(
     category_id: int,
-    category: CategoryCreate,
+    category: CategoryUpdate,
     db: Session = Depends(get_db),
 ):
     db_category = (
