@@ -75,7 +75,7 @@ def create_category(
 
 @router.get("", response_model=list[CategoryResponse])
 def get_categories(db: Session = Depends(get_db)):
-    return db.query(Category).all()
+    return db.query(Category).order_by(Category.id.asc()).all()
 
 
 @router.put("/{category_id}", response_model=CategoryResponse)
